@@ -1,9 +1,8 @@
 import multiprocessing
-import queue
 from . import defines
 
 
-def worker(queue: multiprocessing.Queue | queue.Queue):
+def worker(queue: multiprocessing.Queue):
     while True:
         tk: defines.Task | None = queue.get()
         if tk is not None:
@@ -22,6 +21,8 @@ def worker(queue: multiprocessing.Queue | queue.Queue):
         else:
             callback(task())
 
+def getNewWorker():
+    TaskWorker = multiprocessing.Process(target=worker,args=(defines.TaskQueue,))
+    TaskWorker.start()
+    return TaskWorker
 
-ProcessTaskWorker = multiprocessing.Process(
-    target=worker, args=(defines.ProcessTaskQueue,))

@@ -1,2 +1,2 @@
-from .defines import ProcessTaskQueue, Task
-from .TaskWorker import ProcessTaskWorker
+from .defines import TaskQueue, Task
+from .TaskWorker import getNewWorker
