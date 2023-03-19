@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="TaskWorker",
-    version="1.0.2",
+    version="1.0.3",
     author="ChenHaoYan",
     author_email="chanhaoyan@126.com",
     packages=["taskworker"],
