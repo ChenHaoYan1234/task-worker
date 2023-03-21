@@ -14,7 +14,7 @@ def callbackWarper(callback: typing.Callable[[typing.Any], None] | None, status:
     return func
 
 
-def worker(queue):
+def workerThread(queue: queue.Queue[defines.Task | None]):
     while True:
         tk: defines.Task | None = queue.get()
         if tk is not None:
@@ -44,16 +44,52 @@ def worker(queue):
                 task()
 
 
+def workerProcess(queue: multiprocessing.Queue, classDict: dict[str, typing.Any]):
+    while True:
+        tk: defines.Task | None = queue.get()
+        classDict["status"] = defines.Status.PENDING
+        if tk is not None:
+            task = tk['task']
+            args = tk['args']
+            kwargs = tk['kwargs']
+            callback = tk['callback']
+        else:
+            classDict["status"] = defines.Status.CLOSED
+            return
+        if callback is not None:
+            if (not args is None) and (not kwargs is None):
+                callback(task(*args, **kwargs))
+            elif args is None and (not kwargs is None):
+                callback(task(**kwargs))
+            elif (not args is None) and kwargs is None:
+                callback(task(*args))
+            else:
+                callback(task())
+        else:
+            if (not args is None) and (not kwargs is None):
+                task(*args, **kwargs)
+            elif args is None and (not kwargs is None):
+                task(**kwargs)
+            elif (not args is None) and kwargs is None:
+                task(*args)
+            else:
+                task()
+        classDict["status"] = defines.Status.FREE
+
+
 class WorkerProcess(multiprocessing.Process):
     def __init__(self, taskQueue: multiprocessing.Queue, name: str = "TaskWorker") -> None:
-        self.taskQueue = taskQueue
+        self.taskQueue: multiprocessing.Queue = multiprocessing.Queue()
         super().__init__(name=name)
 
-    def setName(self,name:str):
+    def put(self, task: defines.Task | None):
+        self.taskQueue.put(task)
+
+    def setName(self, name: str):
         self.name = name
 
     def run(self) -> None:
-        worker(self.taskQueue)
+        workerProcess(self.taskQueue, self.__dict__)
 
 
 class WorkerThread(threading.Thread):
@@ -62,7 +98,7 @@ class WorkerThread(threading.Thread):
         super().__init__(name=name)
 
     def run(self) -> None:
-        worker(self.taskQueue)
+        workerThread(self.taskQueue)
 
 
 class TaskWorker(object):
@@ -74,16 +110,13 @@ class TaskWorker(object):
             self.worker: WorkerProcess | WorkerThread = WorkerThread(
                 self.taskQueue)
 
-            def setName(self: typing.Self, name: str):
-                self.worker.setName(name)
-            self.setName = setName
             self.__status = defines.Status.FREE
         elif typeWorker == defines.TypeWorker.PROCESS:
             self.taskQueue: queue.Queue[defines.Task |
                                         None] | multiprocessing.Queue[defines.Task | None] = multiprocessing.Queue()
             self.worker: WorkerProcess | WorkerThread = WorkerProcess(
                 self.taskQueue)
-            self.__status = defines.Status.UNAVAILABLE
+            self.__status = defines.Status.FREE
         else:
             error = ValueError()
             error.add_note("Invalid value!")
@@ -93,6 +126,9 @@ class TaskWorker(object):
     @property
     def status(self: typing.Self):
         return self.__status
+
+    def setName(self: typing.Self, name: str):
+        self.worker.setName(name)
 
     def close(self) -> None:
         if self.__status == defines.Status.CLOSED:
@@ -107,7 +143,6 @@ class TaskWorker(object):
                 self.__status = defines.Status.CLOSED
 
     def addTask(self, task: defines.Task) -> None:
-        if self.typeWorker == defines.TypeWorker.THREAD:
-            self.__status = defines.Status.PENDING
-            task['callback'] = callbackWarper(task['callback'], self.__dict__)
+        self.__status = defines.Status.PENDING
+        task['callback'] = callbackWarper(task['callback'], self.__dict__)
         self.taskQueue.put(task)
