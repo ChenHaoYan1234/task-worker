@@ -1,7 +1,7 @@
 # TaskWorker
 
 #### Description
-多进程任务执行器
+任务执行器
 
 #### Software Architecture
 Software architecture description
