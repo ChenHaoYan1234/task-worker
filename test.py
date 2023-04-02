@@ -1,44 +1,27 @@
-import taskworker
-import multiprocessing
+from taskworker import TaskWorker, TypeWorker,Status
 import time
 
 
-def task1(arg):
-    time.sleep(arg)
-    def func(a): return a**2
-    return func(arg)
-
-
-def task2(arg):
-    time.sleep(arg)
-    return arg
-
-
-def task3(arg):
-    time.sleep(arg)
-    return arg
+def func():
+    time.sleep(2)
+    return 2
 
 
 def callback(arg):
     print(arg)
 
 
-taskDict1: taskworker.Task = {
-    "task": task1, "args": (1,), "kwargs": None, "callback": callback
-}
-
-taskDict2: taskworker.Task = {
-    "task": task2, "args": (5,), "kwargs": None, "callback": callback
-}
-
-taskDict3: taskworker.Task = {
-    "task": task3, "args": (10,), "kwargs": None, "callback": callback
-}
-
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
-    pool = taskworker.WorkerPoolThread()
-    pool.addTask(taskDict1)
-    pool.addTask(taskDict2)
-    pool.addTask(taskDict3)
-    pool.close()
+    taskworker = TaskWorker(TypeWorker.THREAD, "114514")
+    print(taskworker.status)
+    taskworker.addTask({"task": func, "args": None,
+                       "kwargs": None, "callback": callback})
+    print(taskworker.name)
+    print(taskworker.status)
+    while taskworker.status == Status.PENDING:
+        print(taskworker.status)
+        time.sleep(1)
+    else:
+        print(taskworker.status)
+    taskworker.close()
+    print(taskworker.status)

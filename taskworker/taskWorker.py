@@ -1,8 +1,15 @@
+import hashlib
 import multiprocessing
-import threading
 import queue
+import random
+import threading
 import typing
-from . import defines
+
+from . import defines, setting
+
+
+def hash_random() -> str:
+    return hashlib.md5(str(random.random()).encode()).hexdigest()
 
 
 def callbackWarper(callback: typing.Callable[[typing.Any], None] | None, status: dict[str, typing.Any]):
@@ -14,135 +21,134 @@ def callbackWarper(callback: typing.Callable[[typing.Any], None] | None, status:
     return func
 
 
-def workerThread(queue: queue.Queue[defines.Task | None]):
-    while True:
-        tk: defines.Task | None = queue.get()
-        if tk is not None:
-            task = tk['task']
-            args = tk['args']
-            kwargs = tk['kwargs']
-            callback = tk['callback']
-        else:
-            return
-        if callback is not None:
-            if (not args is None) and (not kwargs is None):
-                callback(task(*args, **kwargs))
-            elif args is None and (not kwargs is None):
-                callback(task(**kwargs))
-            elif (not args is None) and kwargs is None:
-                callback(task(*args))
-            else:
-                callback(task())
-        else:
-            if (not args is None) and (not kwargs is None):
-                task(*args, **kwargs)
-            elif args is None and (not kwargs is None):
-                task(**kwargs)
-            elif (not args is None) and kwargs is None:
-                task(*args)
-            else:
-                task()
-
-
-def workerProcess(queue: multiprocessing.Queue, classDict: dict[str, typing.Any]):
-    while True:
-        tk: defines.Task | None = queue.get()
-        classDict["status"] = defines.Status.PENDING
-        if tk is not None:
-            task = tk['task']
-            args = tk['args']
-            kwargs = tk['kwargs']
-            callback = tk['callback']
-        else:
-            classDict["status"] = defines.Status.CLOSED
-            return
-        if callback is not None:
-            if (not args is None) and (not kwargs is None):
-                callback(task(*args, **kwargs))
-            elif args is None and (not kwargs is None):
-                callback(task(**kwargs))
-            elif (not args is None) and kwargs is None:
-                callback(task(*args))
-            else:
-                callback(task())
-        else:
-            if (not args is None) and (not kwargs is None):
-                task(*args, **kwargs)
-            elif args is None and (not kwargs is None):
-                task(**kwargs)
-            elif (not args is None) and kwargs is None:
-                task(*args)
-            else:
-                task()
-        classDict["status"] = defines.Status.FREE
-
-
 class WorkerProcess(multiprocessing.Process):
-    def __init__(self, taskQueue: multiprocessing.Queue, name: str = "TaskWorker") -> None:
+    def __init__(self, name: str = "TaskWorker") -> None:
         self.taskQueue: multiprocessing.Queue = multiprocessing.Queue()
-        super().__init__(name=name)
+        self.__status = defines.Status.FREE
+        super().__init__(name=name, daemon=True)
 
     def put(self, task: defines.Task | None):
         self.taskQueue.put(task)
 
-    def setName(self, name: str):
-        self.name = name
+    @property
+    def status(self):
+        return self.__status
 
     def run(self) -> None:
-        workerProcess(self.taskQueue, self.__dict__)
+        while True:
+            tk: defines.Task | None = self.taskQueue.get()
+            self.__status = defines.Status.PENDING
+            if tk is not None:
+                task = tk['task']
+                args = tk['args']
+                kwargs = tk['kwargs']
+                callback = tk['callback']
+            else:
+                self.__status = defines.Status.CLOSED
+                return
+            if callback is not None:
+                if (not args is None) and (not kwargs is None):
+                    callback(task(*args, **kwargs))
+                elif args is None and (not kwargs is None):
+                    callback(task(**kwargs))
+                elif (not args is None) and kwargs is None:
+                    callback(task(*args))
+                else:
+                    callback(task())
+            else:
+                if (not args is None) and (not kwargs is None):
+                    task(*args, **kwargs)
+                elif args is None and (not kwargs is None):
+                    task(**kwargs)
+                elif (not args is None) and kwargs is None:
+                    task(*args)
+                else:
+                    task()
+            self.__status = defines.Status.FREE
 
 
 class WorkerThread(threading.Thread):
-    def __init__(self, taskQueue: queue.Queue[defines.Task | None], name: str = "TaskWorker") -> None:
-        self.taskQueue = taskQueue
-        super().__init__(name=name)
+    def __init__(self, name: str = "TaskWorker") -> None:
+        self.taskQueue: queue.Queue[defines.Task | None] = queue.Queue()
+        self.__status = defines.Status.FREE
+        super().__init__(name=name, daemon=True)
+
+    def put(self, task: defines.Task | None):
+        self.taskQueue.put(task)
+
+    @property
+    def status(self):
+        return self.__status
 
     def run(self) -> None:
-        workerThread(self.taskQueue)
+        while True:
+            tk: defines.Task | None = self.taskQueue.get()
+            self.__status = defines.Status.PENDING
+            if tk is not None:
+                task = tk['task']
+                args = tk['args']
+                kwargs = tk['kwargs']
+                callback = tk['callback']
+            else:
+                self.__status = defines.Status.CLOSED
+                return
+            if callback is not None:
+                if (not args is None) and (not kwargs is None):
+                    callback(task(*args, **kwargs))
+                elif args is None and (not kwargs is None):
+                    callback(task(**kwargs))
+                elif (not args is None) and kwargs is None:
+                    callback(task(*args))
+                else:
+                    callback(task())
+            else:
+                if (not args is None) and (not kwargs is None):
+                    task(*args, **kwargs)
+                elif args is None and (not kwargs is None):
+                    task(**kwargs)
+                elif (not args is None) and kwargs is None:
+                    task(*args)
+                else:
+                    task()
+            self.__status = defines.Status.FREE
 
 
 class TaskWorker(object):
-    def __init__(self, typeWorker: defines.TypeWorker) -> None:
+    def __init__(self, typeWorker: defines.TypeWorker, prefix: str = "TaskWorker") -> None:
+        self.__name = f"{prefix}.{hash_random()}"
         self.typeWorker = typeWorker
         if typeWorker == defines.TypeWorker.THREAD:
-            self.taskQueue: queue.Queue[defines.Task |
-                                        None] | multiprocessing.Queue[defines.Task | None] = queue.Queue()
-            self.worker: WorkerProcess | WorkerThread = WorkerThread(
-                self.taskQueue)
-
-            self.__status = defines.Status.FREE
+            self.__worker: WorkerProcess | WorkerThread = WorkerThread(
+                self.__name)
         elif typeWorker == defines.TypeWorker.PROCESS:
-            self.taskQueue: queue.Queue[defines.Task |
-                                        None] | multiprocessing.Queue[defines.Task | None] = multiprocessing.Queue()
-            self.worker: WorkerProcess | WorkerThread = WorkerProcess(
-                self.taskQueue)
-            self.__status = defines.Status.FREE
+            self.__worker = WorkerProcess(self.__name)
         else:
-            error = ValueError()
-            error.add_note("Invalid value!")
+            error = ValueError("Invalid value!")
             raise error
-        self.worker.start()
+        self.__worker.start()
+        setting.getGlobalSetting().register(self, self.__name)
 
     @property
-    def status(self: typing.Self):
-        return self.__status
+    def status(self):
+        return self.__worker.status
+    
+    @property
+    def name(self):
+        return self.__name
 
-    def setName(self: typing.Self, name: str):
-        self.worker.setName(name)
+    @property
+    def worker(self):
+        return self.__worker
 
     def close(self) -> None:
-        if self.__status == defines.Status.CLOSED:
+        if self.__worker.status == defines.Status.CLOSED:
             raise Exception()
         else:
-            self.taskQueue.put(None)
-            while self.worker.is_alive():
-                self.worker.join()
-            if isinstance(self.worker, WorkerProcess):
-                self.worker.close()
-            else:
-                self.__status = defines.Status.CLOSED
+            self.__worker.put(None)
+            while self.__worker.is_alive():
+                self.__worker.join()
+            if isinstance(self.__worker, WorkerProcess):
+                self.__worker.close()
 
     def addTask(self, task: defines.Task) -> None:
-        self.__status = defines.Status.PENDING
-        task['callback'] = callbackWarper(task['callback'], self.__dict__)
-        self.taskQueue.put(task)
+        self.__worker.put(task)

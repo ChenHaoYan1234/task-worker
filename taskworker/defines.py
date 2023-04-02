@@ -1,6 +1,7 @@
-import typing
-import multiprocessing
 import enum
+import multiprocessing
+import typing
+
 
 class Task(typing.TypedDict):
     task: typing.Callable
