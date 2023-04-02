@@ -9,11 +9,14 @@ class Task(typing.TypedDict):
     kwargs: typing.Dict[str, typing.Any] | None
     callback: typing.Callable[[typing.Any], None] | None
 
+
 MAX_WORKER = multiprocessing.cpu_count() - 1
+
 
 class TypeWorker(enum.Enum):
     THREAD = 0
     PROCESS = 1
+
 
 class Status(enum.Enum):
     PENDING = 0
