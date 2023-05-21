@@ -67,7 +67,7 @@ _GLOBAL_SETTING = Setting()
 
 
 def getGlobalSetting():
-        return _GLOBAL_SETTING
+    return _GLOBAL_SETTING
 
 
 def setGlobalSetting(setting: Setting):
