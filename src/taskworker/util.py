@@ -2,13 +2,13 @@ import enum
 import typing
 
 
-class ID(enum.Enum):
-    ISDICT = 0
+class _(enum.Enum):
+    _ = 0
 
 
 def dict2list(var: dict[typing.Any, typing.Any]):
     to: list[typing.Any] = []
-    to.append(ID.ISDICT)
+    to.append(_._)
     for key, value in var.items():
         to.append(key)
         if isinstance(value, dict):
@@ -19,12 +19,12 @@ def dict2list(var: dict[typing.Any, typing.Any]):
 
 
 def list2dict(value: list[typing.Any]):
-    if value[0] != ID.ISDICT:
+    if value[0] != _._:
         raise ValueError("Unknow value!")
     to: dict[typing.Any, typing.Any] = {}
     for i in range(1, len(value), 2):
         if isinstance(value[i+1], list):
-            if value[i+1][0] == ID.ISDICT:
+            if value[i+1][0] == _._:
                 to[value[i]] = list2dict(value[i+1])
             else:
                 to[value[i]] = value[i+1]
@@ -33,11 +33,11 @@ def list2dict(value: list[typing.Any]):
     return to
 
 def list2table(value: list[typing.Any]):
-    if value[0] != ID.ISDICT:
+    if value[0] != _._:
         raise ValueError("Unknow value!")
     value_ = value
     for i in range(1,len(value_),2):
-        if isinstance(value_[i+1],list) and value_[i+1][0] == ID.ISDICT:
+        if isinstance(value_[i+1],list) and value_[i+1][0] == _._:
             value_[i+1] = list2table(value_[i+1])
     return Table(value_)
 
@@ -47,7 +47,7 @@ class Table(object):
         if isinstance(value, dict):
             self.__table = dict2list(value)
         else:
-            if value[0] == ID.ISDICT and len(value) % 2 == 1:
+            if value[0] == _._ and len(value) % 2 == 1:
                 self.__table = value
             else:
                 raise ValueError("Unknow value!")
@@ -103,4 +103,4 @@ class Table(object):
         return tuple(items)
 
     def clear(self):
-        self.__table = [ID.ISDICT]
+        self.__table = [_._]
