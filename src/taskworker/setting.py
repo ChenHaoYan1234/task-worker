@@ -67,11 +67,7 @@ _GLOBAL_SETTING = Setting()
 
 
 def getGlobalSetting():
-    if isinstance(_GLOBAL_SETTING, Setting):
         return _GLOBAL_SETTING
-    else:
-        error = ValueError("Global setting isn't inited!")
-        raise error
 
 
 def setGlobalSetting(setting: Setting):

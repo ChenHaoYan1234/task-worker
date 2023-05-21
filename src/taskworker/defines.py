@@ -9,6 +9,9 @@ class Task(typing.TypedDict):
     kwargs: typing.Dict[str, typing.Any] | None
     callback: typing.Callable[[typing.Any], None] | None
 
+class Error(Task):
+    error: Exception
+
 MAX_WORKER = multiprocessing.cpu_count() - 1
 
 class TypeWorker(enum.Enum):
@@ -20,3 +23,4 @@ class Status(enum.Enum):
     FREE = 1
     CLOSED = 2
     UNAVAILABLE = 3
+    ERROR = 4

@@ -4,6 +4,7 @@ import queue
 import random
 import threading
 import typing
+import sys
 
 from . import defines, setting
 
@@ -46,24 +47,38 @@ class WorkerProcess(multiprocessing.Process):
             else:
                 self.__status = defines.Status.CLOSED
                 return
-            if callback is not None:
-                if (not args is None) and (not kwargs is None):
-                    callback(task(*args, **kwargs))
-                elif args is None and (not kwargs is None):
-                    callback(task(**kwargs))
-                elif (not args is None) and kwargs is None:
-                    callback(task(*args))
+            try:
+                if callback is not None:
+                    if (not args is None) and (not kwargs is None):
+                        callback(task(*args, **kwargs))
+                    elif args is None and (not kwargs is None):
+                        callback(task(**kwargs))
+                    elif (not args is None) and kwargs is None:
+                        callback(task(*args))
+                    else:
+                        callback(task())
                 else:
-                    callback(task())
-            else:
-                if (not args is None) and (not kwargs is None):
-                    task(*args, **kwargs)
-                elif args is None and (not kwargs is None):
-                    task(**kwargs)
-                elif (not args is None) and kwargs is None:
-                    task(*args)
-                else:
-                    task()
+                    if (not args is None) and (not kwargs is None):
+                        task(*args, **kwargs)
+                    elif args is None and (not kwargs is None):
+                        task(**kwargs)
+                    elif (not args is None) and kwargs is None:
+                        task(*args)
+                    else:
+                        task()
+            except SystemExit as e:
+                sys.exit(e.code)
+            except Exception as e:
+                error: defines.Error = {
+                    'task': task,
+                    'args': args,
+                    'kwargs': kwargs,
+                    'error': e,
+                    'callback': callback
+                }
+                self.__status = defines.Status.ERROR
+                self.__error = error
+                return
             self.__status = defines.Status.FREE
 
 
@@ -92,25 +107,45 @@ class WorkerThread(threading.Thread):
             else:
                 self.__status = defines.Status.CLOSED
                 return
-            if callback is not None:
-                if (not args is None) and (not kwargs is None):
-                    callback(task(*args, **kwargs))
-                elif args is None and (not kwargs is None):
-                    callback(task(**kwargs))
-                elif (not args is None) and kwargs is None:
-                    callback(task(*args))
+            try:
+                if callback is not None:
+                    if (not args is None) and (not kwargs is None):
+                        callback(task(*args, **kwargs))
+                    elif args is None and (not kwargs is None):
+                        callback(task(**kwargs))
+                    elif (not args is None) and kwargs is None:
+                        callback(task(*args))
+                    else:
+                        callback(task())
                 else:
-                    callback(task())
-            else:
-                if (not args is None) and (not kwargs is None):
-                    task(*args, **kwargs)
-                elif args is None and (not kwargs is None):
-                    task(**kwargs)
-                elif (not args is None) and kwargs is None:
-                    task(*args)
-                else:
-                    task()
+                    if (not args is None) and (not kwargs is None):
+                        task(*args, **kwargs)
+                    elif args is None and (not kwargs is None):
+                        task(**kwargs)
+                    elif (not args is None) and kwargs is None:
+                        task(*args)
+                    else:
+                        task()
+            except SystemExit as e:
+                sys.exit(e.code)
+            except Exception as e:
+                error: defines.Error = {
+                    'task': task,
+                    'args': args,
+                    'kwargs': kwargs,
+                    'error': e,
+                    'callback': callback
+                }
+                self.__status = defines.Status.ERROR
+                self.__error = error
+                return
             self.__status = defines.Status.FREE
+
+    def getError(self):
+        if self.__status == defines.Status.ERROR:
+            return self.__error
+        else:
+            return None
 
 
 class TaskWorker(object):
@@ -131,7 +166,7 @@ class TaskWorker(object):
     @property
     def status(self):
         return self.__worker.status
-    
+
     @property
     def name(self):
         return self.__name
