@@ -16,8 +16,8 @@ MAX_WORKER = multiprocessing.cpu_count() - 1
 
 
 class TypeWorker(enum.Enum):
-    THREAD = 0
-    PROCESS = 1
+    THREAD_TYPE = 0
+    PROCESS_TYPE = 1
 
 
 class Status(enum.Enum):

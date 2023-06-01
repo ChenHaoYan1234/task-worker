@@ -21,4 +21,5 @@ classifiers = [
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["taskworker"]
+exclude = ["test"]
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)

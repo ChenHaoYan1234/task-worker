@@ -7,4 +7,7 @@ from .taskWorker import TaskWorker
 from .util import Table, dict2list, list2dict, list2table
 from .workerPool import WorkerPoolThread
 
-__version__ = version("TaskWorker")
+try:
+    __version__ = version("TaskWorker")
+except:
+    __version__ = "unknown"
