@@ -152,10 +152,10 @@ class TaskWorker(object):
     def __init__(self, typeWorker: defines.TypeWorker, prefix: str = "TaskWorker") -> None:
         self.__name = f"{prefix}.{hash_random()}"
         self.typeWorker = typeWorker
-        if typeWorker == defines.TypeWorker.THREAD:
+        if typeWorker == defines.TypeWorker.THREAD_TYPE:
             self.__worker: WorkerProcess | WorkerThread = WorkerThread(
                 self.__name)
-        elif typeWorker == defines.TypeWorker.PROCESS:
+        elif typeWorker == defines.TypeWorker.PROCESS_TYPE:
             self.__worker = WorkerProcess(self.__name)
         else:
             error = ValueError("Invalid value!")
