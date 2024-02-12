@@ -1,5 +1,5 @@
-# TaskWorker
+# task-worker
 
-#### 介绍
-任务执行器
+#### Description
+an multi-thread or multi-process task worker
 

@@ -3,7 +3,7 @@ requires = [ "setuptools ~= 68.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "TaskWorker"
+name = "task-worker"
 authors = [
     { name = "ChenHaoYan", email = "chanhaoyan@126.com" }
 ]
@@ -20,6 +20,6 @@ classifiers = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["taskworker"]
+include = ["task-worker"]
 exclude = ["test"]
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
